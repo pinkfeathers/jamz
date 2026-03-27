@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JAMZ</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;700&family=Inter:wght@400;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --jamz-bg: #ffffff;
+            --jamz-card: #f9f9f9;
+            --jamz-accent: #00ffcc; 
+            --jamz-text: #121212;
+            --jamz-dim: #999999;
+        }
+
+        body {
+            background: var(--jamz-bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: var(--jamz-text);
+        }
+
+        .jamz-container {
+            width: 350px;
+            background: var(--jamz-card);
+            padding: 30px;
+            border-radius: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden; /* Clips the playlist overlay */
+        }
+
+        .jamz-artwork-wrap {
+            width: 280px;
+            height: 280px;
+            margin-bottom: 25px;
+            border-radius: 25px;
+            overflow: hidden;
+            background: #ffffff;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+            position: relative;
+        }
+
+        .jamz-artwork-wrap::after {
+            content: 'JAMZ';
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            color: #f0f0f0;
+            font-size: 3rem;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+        }
+
+        .jamz-artwork-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .img-loaded { opacity: 1 !important; }
+
+        .jamz-info {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .jamz-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin: 0;
+            letter-spacing: -1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .jamz-artist {
+            font-size: 0.9rem;
+            color: var(--jamz-dim);
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        /* Visualizer */
+        .jamz-viz {
+            display: flex;
+            gap: 4px;
+            height: 30px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .v-bar {
+            width: 3px;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            transition: background 0.3s ease;
+        }
+
+        @keyframes bounce {
+            0%, 100% { height: 4px; }
+            50% { height: 25px; }
+        }
+
+        .playing .v-bar { 
+            animation: bounce 0.6s infinite ease-in-out; 
+            background: var(--jamz-accent);
+        }
+        .playing .v-bar:nth-child(2) { animation-delay: 0.1s; }
+        .playing .v-bar:nth-child(3) { animation-delay: 0.2s; }
+        .playing .v-bar:nth-child(4) { animation-delay: 0.3s; }
+
+        .jamz-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .btn {
+            background: none;
+            border: none;
+            color: var(--jamz-text);
+            cursor: pointer;
+            padding: 10px;
+            transition: all 0.3s ease;
+        }
+
+        #playBtn {
+            background: var(--jamz-text);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 700;
+            font-size: 0.7rem;
+            color: white;
+        }
+
+        #playBtn.is-playing {
+            background: var(--jamz-accent);
+            color: var(--jamz-text);
+        }
+
+        .nav-btn {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--jamz-dim);
+        }
+
+        /* Progress Bar */
+        .progress-area {
+            width: 100%;
+            margin-top: 25px;
+        }
+
+        .bar-bg {
+            width: 100%;
+            height: 6px;
+            background: #eee;
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--jamz-accent);
+            border-radius: 10px;
+            position: absolute;
+        }
+
+        .time-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--jamz-dim);
+            margin-top: 8px;
+        }
+
+        /* Playlist & Tools */
+        .tools {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .tool-btn {
+            background: #ffffff;
+            border: 1px solid #eee;
+            color: var(--jamz-text);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        /* Playlist Overlay */
+        .playlist-overlay {
+            position: absolute;
+            bottom: -100%;
+            left: 0;
+            width: 100%;
+            height: 70%;
+            background: #ffffff;
+            z-index: 10;
+            transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.05);
+            border-radius: 30px 30px 0 0;
+        }
+
+        .playlist-overlay.active {
+            bottom: 0;
+        }
+
+        .playlist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .playlist-header h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .close-playlist {
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        #trackList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        .track-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f4f4f4;
+            font-size: 0.8rem;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .track-item.active {
+            color: var(--jamz-accent);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="jamz-container">
+        <div class="playlist-overlay" id="playlistOverlay">
+            <div class="playlist-header">
+                <h3>Queue</h3>
+                <button class="close-playlist" id="closePlaylist">×</button>
+            </div>
+            <ul id="trackList"></ul>
+        </div>
+
+        <div class="jamz-artwork-wrap">
+            <img src="" alt="" id="albumArt">
+        </div>
+
+        <div class="jamz-info">
+            <h1 class="jamz-title" id="titleText">Tap Browse</h1>
+            <div id="artistText" class="jamz-artist">to start your session</div>
+        </div>
+
+        <div class="jamz-viz" id="visualizer">
+            <div class="v-bar"></div>
+            <div class="v-bar"></div>
+            <div class="v-bar"></div>
+            <div class="v-bar"></div>
+        </div>
+
+        <div class="jamz-controls">
+            <button id="prevBtn" class="btn nav-btn">PREV</button>
+            <button id="playBtn" class="btn">PLAY</button>
+            <button id="nextBtn" class="btn nav-btn">NEXT</button>
+        </div>
+
+        <div class="progress-area">
+            <div class="bar-bg" id="progressContainer">
+                <div id="progressBar" class="bar-fill"></div>
+            </div>
+            <div class="time-labels">
+                <span id="curTime">0:00</span>
+                <span id="durTime">0:00</span>
+            </div>
+        </div>
+
+        <div class="tools">
+            <input type="file" id="fileInput" webkitdirectory directory multiple style="display:none;">
+            <button id="browseBtn" class="tool-btn">BROWSE</button>
+            <button id="playlistBtn" class="tool-btn">PLAYLIST</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const audio = new Audio();
+            const playBtn = document.getElementById('playBtn');
+            const browseBtn = document.getElementById('browseBtn');
+            const fileInput = document.getElementById('fileInput');
+            const playlistBtn = document.getElementById('playlistBtn');
+            const playlistOverlay = document.getElementById('playlistOverlay');
+            const closePlaylist = document.getElementById('closePlaylist');
+            const trackListUI = document.getElementById('trackList');
+            
+            const visualizer = document.getElementById('visualizer');
+            const progressBar = document.getElementById('progressBar');
+            const progressContainer = document.getElementById('progressContainer');
+            const curTimeText = document.getElementById('curTime');
+            const durTimeText = document.getElementById('durTime');
+            const titleText = document.getElementById('titleText');
+            const artistText = document.getElementById('artistText');
+            const albumArt = document.getElementById('albumArt');
+
+            let playlist = [];
+            let currentIndex = 0;
+
+            // UI Toggles
+            browseBtn.onclick = () => fileInput.click();
+            playlistBtn.onclick = () => playlistOverlay.classList.add('active');
+            closePlaylist.onclick = () => playlistOverlay.classList.remove('active');
+
+            fileInput.onchange = function(e) {
+                const files = Array.from(e.target.files);
+                playlist = files.filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|wav|ogg|m4a)$/i));
+                if (playlist.length > 0) {
+                    renderPlaylist();
+                    currentIndex = 0;
+                    loadTrack(0);
+                }
+            };
+
+            function renderPlaylist() {
+                trackListUI.innerHTML = "";
+                playlist.forEach((file, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'track-item';
+                    li.textContent = file.name.replace(/\.[^/.]+$/, "");
+                    li.onclick = () => {
+                        loadTrack(index);
+                        playlistOverlay.classList.remove('active');
+                    };
+                    trackListUI.appendChild(li);
+                });
+            }
+
+            function loadTrack(index) {
+                if (playlist.length === 0) return;
+                currentIndex = (index + playlist.length) % playlist.length;
+                
+                // Update active state in playlist UI
+                Array.from(trackListUI.children).forEach((el, i) => {
+                    el.classList.toggle('active', i === currentIndex);
+                });
+
+                const file = playlist[currentIndex];
+                const songTitle = file.name.replace(/\.[^/.]+$/, "");
+                
+                audio.pause();
+                if (audio.src) URL.revokeObjectURL(audio.src);
+                audio.src = URL.createObjectURL(file);
+                
+                albumArt.classList.remove('img-loaded');
+
+                jsmediatags.read(file, {
+                    onSuccess: function(tag) {
+                        const artist = tag.tags.artist || "Unknown Artist";
+                        const image = tag.tags.picture;
+                        titleText.textContent = songTitle;
+                        artistText.textContent = artist;
+
+                        if (image) {
+                            let base64String = "";
+                            for (let i = 0; i < image.data.length; i++) {
+                                base64String += String.fromCharCode(image.data[i]);
+                            }
+                            const base64 = "data:" + image.format + ";base64," + window.btoa(base64String);
+                            albumArt.src = base64;
+                        } else {
+                            albumArt.src = "";
+                        }
+                        setTimeout(() => albumArt.classList.add('img-loaded'), 100);
+                    },
+                    onError: function() {
+                        titleText.textContent = songTitle;
+                        artistText.textContent = "Unknown Artist";
+                        albumArt.src = "";
+                    }
+                });
+
+                audio.play().then(() => {
+                    playBtn.textContent = "PAUSE";
+                    playBtn.classList.add('is-playing');
+                    visualizer.classList.add('playing');
+                });
+            }
+
+            playBtn.onclick = () => {
+                if (!audio.src) return;
+                if (audio.paused) {
+                    audio.play();
+                    playBtn.textContent = "PAUSE";
+                    playBtn.classList.add('is-playing');
+                    visualizer.classList.add('playing');
+                } else {
+                    audio.pause();
+                    playBtn.textContent = "PLAY";
+                    playBtn.classList.remove('is-playing');
+                    visualizer.classList.remove('playing');
+                }
+            };
+
+            document.getElementById('nextBtn').onclick = () => loadTrack(currentIndex + 1);
+            document.getElementById('prevBtn').onclick = () => loadTrack(currentIndex - 1);
+
+            progressContainer.onclick = (e) => {
+                if (!audio.duration) return;
+                const rect = progressContainer.getBoundingClientRect();
+                const pct = (e.clientX - rect.left) / rect.width;
+                audio.currentTime = pct * audio.duration;
+            };
+
+            audio.ontimeupdate = () => {
+                const percent = (audio.currentTime / audio.duration) * 100;
+                progressBar.style.width = percent + "%";
+                curTimeText.textContent = formatTime(audio.currentTime);
+                durTimeText.textContent = formatTime(audio.duration);
+            };
+
+            function formatTime(secs) {
+                if (isNaN(secs)) return "0:00";
+                const m = Math.floor(secs / 60);
+                const s = Math.floor(secs % 60).toString().padStart(2, '0');
+                return `${m}:${s}`;
+            }
+
+            audio.onended = () => loadTrack(currentIndex + 1);
+        });
+    </script>
+</body>
+  </html>
+  
