@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JAMZ</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;700&family=Inter:wght@400;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --jamz-bg: #ffffff;
+            --jamz-card: #f9f9f9;
+            --jamz-accent: #00ffcc; 
+            --jamz-text: #121212;
+            --jamz-dim: #999999;
+        }
+
+        body {
+            background: var(--jamz-bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: var(--jamz-text);
+        }
+
+        .jamz-container {
+            width: 330px; 
+            background: var(--jamz-card);
+            padding: 15px; 
+            border-radius: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        /* Translucent Search Bar */
+        .search-wrap {
+            width: 220px;
+            margin-bottom: 12px;
+            z-index: 5;
+        }
+
+        #trackSearch {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: none;
+            background: rgba(0, 0, 0, 0.04);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            outline: none;
+            color: var(--jamz-text);
+            text-align: center;
+            transition: background 0.3s;
+        }
+
+        #trackSearch:focus {
+            background: rgba(0, 255, 204, 0.08);
+        }
+
+        /* BIGGER ARTWORK AREA */
+        .jamz-artwork-wrap {
+            width: 280px; 
+            height: 280px;
+            margin-bottom: 15px;
+            border-radius: 25px;
+            overflow: hidden;
+            background: #ffffff;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .jamz-artwork-wrap::after {
+            content: 'JAMZ';
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            color: #f3f3f3;
+            font-size: 3.5rem;
+            position: absolute;
+            z-index: 0;
+        }
+
+        .jamz-artwork-wrap img {
+            width: 100%; 
+            height: 100%;
+            object-fit: cover;
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .img-loaded { opacity: 1 !important; }
+
+        .jamz-info { margin-bottom: 5px; width: 100%; }
+        .jamz-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 1.3rem;
+            margin: 0;
+            letter-spacing: -1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .jamz-artist { font-size: 0.85rem; color: var(--jamz-dim); margin-top: 2px; }
+
+        .jamz-viz {
+            display: flex; gap: 4px; height: 25px; margin: 10px 0; align-items: center;
+        }
+
+        .v-bar { width: 3px; height: 4px; background: #e0e0e0; border-radius: 2px; }
+
+        @keyframes bounce { 0%, 100% { height: 4px; } 50% { height: 20px; } }
+        .playing .v-bar { animation: bounce 0.6s infinite ease-in-out; background: var(--jamz-accent); }
+
+        .jamz-controls { display: flex; justify-content: center; align-items: center; gap: 20px; width: 100%; }
+
+        #playBtn {
+            background: var(--jamz-text);
+            width: 55px; height: 55px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-weight: 700; font-size: 0.65rem; color: white;
+            border: none; cursor: pointer;
+        }
+
+        #playBtn.is-playing { background: var(--jamz-accent); color: var(--jamz-text); }
+        .nav-btn { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.8rem; color: var(--jamz-dim); cursor: pointer; border: none; background: none; }
+
+        .progress-area { width: 100%; margin-top: 15px; }
+        .bar-bg { width: 100%; height: 5px; background: #eee; border-radius: 10px; cursor: pointer; position: relative; }
+        .bar-fill { height: 100%; width: 0%; background: var(--jamz-accent); border-radius: 10px; position: absolute; }
+        .time-labels { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--jamz-dim); margin-top: 6px; }
+
+        .tools { margin-top: 15px; display: flex; gap: 10px; }
+        .tool-btn {
+            background: #ffffff; border: 1px solid #eee; padding: 6px 15px; border-radius: 20px; font-size: 0.65rem; font-weight: 700; cursor: pointer;
+        }
+
+        .playlist-overlay {
+            position: absolute; bottom: -100%; left: 0; width: 100%; height: 85%; background: #ffffff; z-index: 10; transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 20px; border-radius: 30px 30px 0 0; box-shadow: 0 -10px 30px rgba(0,0,0,0.05); display: flex; flex-direction: column;
+        }
+        .playlist-overlay.active { bottom: 0; }
+        #trackList { overflow-y: auto; list-style: none; padding: 0; margin-top: 10px; text-align: left; }
+        .track-item { padding: 12px; border-bottom: 1px solid #f8f8f8; font-size: 0.8rem; cursor: pointer; }
+        .track-item.active { color: var(--jamz-accent); font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div class="jamz-container">
+        <div class="search-wrap">
+            <input type="text" id="trackSearch" placeholder="find a jam..." autocomplete="off">
+        </div>
+
+        <div class="playlist-overlay" id="playlistOverlay">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="font-family:'Space Grotesk'; margin:0; font-size:1rem;">Queue</h3>
+                <button id="closePlaylist" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">×</button>
+            </div>
+            <ul id="trackList"></ul>
+        </div>
+
+        <div class="jamz-artwork-wrap">
+            <img src="pfp.png" alt="pfp" id="albumArt" class="img-loaded">
+        </div>
+
+        <div class="jamz-info">
+            <h1 class="jamz-title" id="titleText">Tap Browse</h1>
+            <div id="artistText" class="jamz-artist">to start session</div>
+        </div>
+
+        <div class="jamz-viz" id="visualizer">
+            <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
+        </div>
+
+        <div class="jamz-controls">
+            <button id="prevBtn" class="nav-btn">PREV</button>
+            <button id="playBtn">PLAY</button>
+            <button id="nextBtn" class="nav-btn">NEXT</button>
+        </div>
+
+        <div class="progress-area">
+            <div class="bar-bg" id="progressContainer">
+                <div id="progressBar" class="bar-fill"></div>
+            </div>
+            <div class="time-labels">
+                <span id="curTime">0:00</span>
+                <span id="durTime">0:00</span>
+            </div>
+        </div>
+
+        <div class="tools">
+            <input type="file" id="fileInput" webkitdirectory directory multiple style="display:none;">
+            <button id="browseBtn" class="tool-btn">BROWSE</button>
+            <button id="playlistBtn" class="tool-btn">PLAYLIST</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const audio = new Audio();
+            const playBtn = document.getElementById('playBtn');
+            const fileInput = document.getElementById('fileInput');
+            const albumArt = document.getElementById('albumArt');
+            const searchInput = document.getElementById('trackSearch');
+            const trackListUI = document.getElementById('trackList');
+            const playlistOverlay = document.getElementById('playlistOverlay');
+            
+            let playlist = [];
+            let currentIndex = 0;
+
+            function updateMediaSession(title, artist, artUrl) {
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: title,
+                        artist: artist,
+                        artwork: [
+                            { src: artUrl || 'pfp.png', sizes: '96x96', type: 'image/png' },
+                            { src: artUrl || 'pfp.png', sizes: '256x256', type: 'image/png' },
+                            { src: artUrl || 'pfp.png', sizes: '512x512', type: 'image/png' }
+                        ]
+                    });
+                    navigator.mediaSession.setActionHandler('play', () => audio.play());
+                    navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+                    navigator.mediaSession.setActionHandler('previoustrack', () => loadTrack(currentIndex - 1));
+                    navigator.mediaSession.setActionHandler('nexttrack', () => loadTrack(currentIndex + 1));
+                }
+            }
+
+            document.getElementById('browseBtn').onclick = () => fileInput.click();
+            document.getElementById('playlistBtn').onclick = () => playlistOverlay.classList.add('active');
+            document.getElementById('closePlaylist').onclick = () => playlistOverlay.classList.remove('active');
+
+            fileInput.onchange = (e) => {
+                const files = Array.from(e.target.files);
+                playlist = files.filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|wav|ogg|m4a)$/i));
+                if (playlist.length > 0) { renderPlaylist(playlist); loadTrack(0); }
+            };
+
+            searchInput.oninput = (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = playlist.filter(f => f.name.toLowerCase().includes(term));
+                renderPlaylist(filtered);
+                if(term) playlistOverlay.classList.add('active');
+            };
+
+            function renderPlaylist(tracksToShow) {
+                trackListUI.innerHTML = "";
+                tracksToShow.forEach((file) => {
+                    const originalIndex = playlist.indexOf(file);
+                    const li = document.createElement('li');
+                    li.className = 'track-item' + (originalIndex === currentIndex ? ' active' : '');
+                    li.textContent = file.name.replace(/\.[^/.]+$/, "");
+                    li.onclick = () => { loadTrack(originalIndex); playlistOverlay.classList.remove('active'); };
+                    trackListUI.appendChild(li);
+                });
+            }
+
+            function loadTrack(index) {
+                if (playlist.length === 0) return;
+                currentIndex = (index + playlist.length) % playlist.length;
+                const file = playlist[currentIndex];
+                const songTitle = file.name.replace(/\.[^/.]+$/, "");
+                audio.src = URL.createObjectURL(file);
+                
+                jsmediatags.read(file, {
+                    onSuccess: (tag) => {
+                        const artist = tag.tags.artist || "Unknown Artist";
+                        const image = tag.tags.picture;
+                        let artUrl = 'pfp.png';
+                        document.getElementById('titleText').textContent = songTitle;
+                        document.getElementById('artistText').textContent = artist;
+                        if (image) {
+                            let base = "";
+                            for (let i = 0; i < image.data.length; i++) base += String.fromCharCode(image.data[i]);
+                            artUrl = "data:" + image.format + ";base64," + window.btoa(base);
+                            albumArt.src = artUrl;
+                        } else { albumArt.src = 'pfp.png'; }
+                        updateMediaSession(songTitle, artist, artUrl);
+                        renderPlaylist(playlist);
+                    },
+                    onError: () => {
+                        document.getElementById('titleText').textContent = songTitle;
+                        document.getElementById('artistText').textContent = "Unknown Artist";
+                        albumArt.src = 'pfp.png';
+                        updateMediaSession(songTitle, "Unknown Artist", 'pfp.png');
+                    }
+                });
+                audio.play();
+            }
+
+            playBtn.onclick = () => audio.paused ? audio.play() : audio.pause();
+            audio.onplay = () => { playBtn.textContent = "PAUSE"; playBtn.classList.add('is-playing'); document.getElementById('visualizer').classList.add('playing'); };
+            audio.onpause = () => { playBtn.textContent = "PLAY"; playBtn.classList.remove('is-playing'); document.getElementById('visualizer').classList.remove('playing'); };
+            audio.onended = () => loadTrack(currentIndex + 1);
+            document.getElementById('nextBtn').onclick = () => loadTrack(currentIndex + 1);
+            document.getElementById('prevBtn').onclick = () => loadTrack(currentIndex - 1);
+            audio.ontimeupdate = () => {
+                const pct = (audio.currentTime / audio.duration) * 100;
+                document.getElementById('progressBar').style.width = pct + "%";
+                document.getElementById('curTime').textContent = formatTime(audio.currentTime);
+                document.getElementById('durTime').textContent = formatTime(audio.duration);
+            };
+            document.getElementById('progressContainer').onclick = (e) => {
+                const pct = (e.clientX - e.currentTarget.getBoundingClientRect().left) / e.currentTarget.offsetWidth;
+                audio.currentTime = pct * audio.duration;
+            };
+            function formatTime(s) { if (isNaN(s)) return "0:00"; return Math.floor(s/60) + ":" + Math.floor(s%60).toString().padStart(2,'0'); }
+            
+            if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+        });
+    </script>
+</body>
+  </html>
+  
