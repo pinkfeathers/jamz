@@ -1,4 +1,7 @@
-"icons": [
+{
+  "short_name": "JAMZ",
+  "name": "JAMZ Music Player",
+  "icons": [
     {
       "src": "pfp.png",
       "sizes": "192x192",
@@ -9,6 +12,13 @@
       "src": "pfp.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable" 
+      "purpose": "maskable"
     }
-]
+  ],
+  "start_url": "index.html?v=11",
+  "display": "standalone",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "scope": "/"
+}
