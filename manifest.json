@@ -1,22 +1,14 @@
-{
-  "name": "JAMZ",
-  "short_name": "JAMZ",
-  "start_url": "index.html",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#00ffcc",
-  "icons": [
+"icons": [
     {
       "src": "pfp.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any"
     },
     {
       "src": "pfp.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "maskable" 
     }
-  ]
-}
+]
